@@ -91,14 +91,14 @@ class _LicenseScreenState extends State<LicenseScreen> {
 
                   ShaderMask(
                     shaderCallback: (b) => AppTheme.goldGradient.createShader(b),
-                    child: Text('𝘾𝙖𝙧𝙙 𝙑𝙤𝙙𝙖𝙛𝙤𝙣𝙚',
+                    child: Text('𝐁𝐀𝐊𝐀𝐑 𝐕𝐎𝐃𝐀 𝐂𝐀𝐑𝐃𝐒',
                       style: GoogleFonts.cairo(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
                     ),
                   ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
 
                   const SizedBox(height: 6),
 
-                  Text('Team Ahmed',
+                  Text('BAKAR TECH',
                     style: GoogleFonts.cairo(fontSize: 13, color: AppTheme.grey, letterSpacing: 3, fontWeight: FontWeight.w600),
                   ).animate().fadeIn(delay: 150.ms),
 
@@ -218,7 +218,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
                   InkWell(
                     borderRadius: BorderRadius.circular(16),
                     onTap: () => launchUrl(
-                      Uri.parse('https://wa.me/201143172355'),
+                      Uri.parse('https://wa.me/201024559883'),
                       mode: LaunchMode.externalApplication,
                     ),
                     child: Container(
