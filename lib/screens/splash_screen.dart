@@ -210,7 +210,7 @@ class _SplashScreenState extends State<SplashScreen>
                     animation: _shimmerCtrl,
                     builder: (_, __) => ShaderMask(
                       shaderCallback: (bounds) => AppTheme.shimmerGold(t: _shimmerCtrl.value).createShader(bounds),
-                      child: Text('𝘾𝙖𝙧𝙙 𝙑𝙤𝙙𝙖𝙛𝙤𝙣𝙚',
+                      child: Text('𝐁𝐀𝐊𝐀𝐑 𝐕𝐎𝐃𝐀 𝐂𝐀𝐑𝐃𝐒',
                         style: GoogleFonts.cairo(fontSize: 32, fontWeight: FontWeight.w900, color: AppTheme.gold,
                           letterSpacing: 1)),
                     ),
@@ -220,7 +220,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                   ShaderMask(
                     shaderCallback: (bounds) => AppTheme.goldGradient.createShader(bounds),
-                    child: Text('Team Ahmed',
+                    child: Text('BAKAR TECH',
                       style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w700,
                         color: Colors.white, letterSpacing: 4),
                     ),
