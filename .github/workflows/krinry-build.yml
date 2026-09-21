@@ -46,7 +46,7 @@ jobs:
       - name: Set app label
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's/android:label="[^"]*"/android:label="𝘾𝙖𝙧𝙙 𝙑𝙤𝙙𝙖𝙛𝙤𝙣𝙚"/' $MANIFEST
+          sed -i 's/android:label="[^"]*"/android:label="𝐁𝐀𝐊𝐀𝐑 𝐕𝐎𝐃𝐀 𝐂𝐀𝐑𝐃𝐒"/' $MANIFEST
 
       - name: Generate app icon
         run: |
