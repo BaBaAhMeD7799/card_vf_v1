@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _contactDeveloper() async {
-    final uri = Uri.parse('https://wa.me/201143172355');
+    final uri = Uri.parse('https://wa.me/201024559883');
 
     try {
       final launched = await launchUrl(
@@ -400,7 +400,7 @@ class _ShimmerTitleState extends State<_ShimmerTitle>
         return ShaderMask(
           shaderCallback: (bounds) => AppTheme.shimmerGold(t: _controller.value).createShader(bounds),
           child: Text(
-            '𝘾𝙖𝙧𝙙 𝙑𝙤𝙙𝙖𝙛𝙤𝙣𝙚',
+            '𝐁𝐀𝐊𝐀𝐑 𝐕𝐎𝐃𝐀 𝐂𝐀𝐑𝐃𝐒',
             style: GoogleFonts.cairo(
               fontSize: 20,
               fontWeight: FontWeight.w900,
