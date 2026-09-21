@@ -1,42 +1,55 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
-class LicenseResult {
-  final bool success;
-  final String? message;
-  final bool isConnectionError;
-
-  const LicenseResult({
-    required this.success,
-    this.message,
-    this.isConnectionError = false,
-  });
-}
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
 
 class LicenseService {
-  static const String _savedKeyPref = 'saved_license_key';
+  // الرابط المباشر على Vercel
+  static const String _verifyUrl = 'https://vodacards-beta.vercel.app/api';
 
-  // قبول أي كود يتم إدخاله وحفظه محلياً فوراً
-  static Future<LicenseResult> activateKey(String key) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_savedKeyPref, key.trim().isNotEmpty ? key.trim() : 'VIP_KEY');
-      return const LicenseResult(success: true);
-    } catch (_) {
-      return const LicenseResult(success: true);
+  /// استخراج معرّف الجهاز الفريد (Device ID)
+  static Future<String> getDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final androidInfo = await deviceInfo.androidInfo;
+      return androidInfo.id; // معرّف أندرويد الثابت للجهاز
     }
+    return 'unknown_device';
   }
 
-  // تخطي الفحص عند فتح التطبيق والاعتماد دائماً على أنه مفعل
-  static Future<LicenseResult> validateSavedKey() async {
-    return const LicenseResult(success: true);
-  }
+  /// التحقق من المفتاح وربطه بالجهاز
+  static Future<Map<String, dynamic>> verifyLicenseKey(String key) async {
+    try {
+      final deviceId = await getDeviceId();
 
-  static Future<String?> getSavedKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_savedKeyPref) ?? 'VIP_KEY';
-  }
+      final response = await http.post(
+        Uri.parse(_verifyUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'key': key.trim(),
+          'device_id': deviceId,
+        }),
+      );
 
-  static Future<String?> getRegisteredKey() async {
-    return getSavedKey();
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['status'] == 'success') {
+        return {
+          'success': true,
+          'message': data['message'],
+          'expires_at': data['expires_at'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['detail'] ?? data['message'] ?? 'فشل التحقق من الكود',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'تعذر الاتصال بسيرفر التحقق، تأكد من اتصال الإنترنت.',
+      };
+    }
   }
 }
