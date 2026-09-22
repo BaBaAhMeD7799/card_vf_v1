@@ -217,23 +217,31 @@ class _ChargeScreenState extends State<ChargeScreen>
 
       String errorMessage = '';
       if (!ok) {
-        if (result['message'] != null) {
+        // فحص أكواد ورسائل فودافون الرسمية
+        final code = (result['code'] ?? result['errorCode'] ?? '').toString();
+        if (code == '1056') {
+          errorMessage = 'الرقم السري للمحفظة غير صحيح';
+        } else if (code == '2123') {
+          errorMessage = 'تم حظر الرقم السري للمحفظة لإدخاله خاطئاً 3 مرات';
+        } else if (code == '2252' || code == '6051' || code == '6114') {
+          errorMessage = 'رصيد محفظة فودافون كاش غير كافٍ';
+        } else if (code == '2037') {
+          errorMessage = 'وصلت للحد الأقصى لتفعيل الكروت، انتظر انتهاء الكروت الحالية';
+        } else if (code == '2009') {
+          errorMessage = 'رقم المستلم غير مفعل، يرجى تفعيله أولاً';
+        } else if (code == '2012') {
+          errorMessage = 'لقد وصلت للحد الأقصى المسموح به';
+        } else if (result['message'] != null) {
           errorMessage = result['message'].toString();
         } else if (result['description'] != null) {
           errorMessage = result['description'].toString();
-        } else if (result['reason'] != null) {
-          errorMessage = result['reason'].toString();
-        } else if (result['error'] != null) {
-          errorMessage = result['error'] is Map
-              ? (result['error']['message'] ?? result['error']['description'] ?? result['error']['reason'] ?? '').toString()
-              : result['error'].toString();
         } else if (result['orderItem'] != null && (result['orderItem'] as List).isNotEmpty) {
           final item = result['orderItem'][0];
           errorMessage = (item['statusMessage'] ?? item['state'] ?? '').toString();
         }
 
         if (errorMessage.isEmpty) {
-          errorMessage = result['raw']?.toString() ?? 'كود الاستجابة: $httpStatus';
+          errorMessage = result['raw']?.toString() ?? 'خطأ عام من السيرفر (كود: $httpStatus)';
         }
 
         _showErrorDialog(errorMessage, widget.card.productId);
