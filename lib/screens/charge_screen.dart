@@ -217,7 +217,6 @@ class _ChargeScreenState extends State<ChargeScreen>
 
       String errorMessage = '';
       if (!ok) {
-        // فحص أكواد ورسائل فودافون الرسمية
         final code = (result['code'] ?? result['errorCode'] ?? '').toString();
         if (code == '1056') {
           errorMessage = 'الرقم السري للمحفظة غير صحيح';
@@ -227,10 +226,6 @@ class _ChargeScreenState extends State<ChargeScreen>
           errorMessage = 'رصيد محفظة فودافون كاش غير كافٍ';
         } else if (code == '2037') {
           errorMessage = 'وصلت للحد الأقصى لتفعيل الكروت، انتظر انتهاء الكروت الحالية';
-        } else if (code == '2009') {
-          errorMessage = 'رقم المستلم غير مفعل، يرجى تفعيله أولاً';
-        } else if (code == '2012') {
-          errorMessage = 'لقد وصلت للحد الأقصى المسموح به';
         } else if (result['message'] != null) {
           errorMessage = result['message'].toString();
         } else if (result['description'] != null) {
@@ -241,7 +236,7 @@ class _ChargeScreenState extends State<ChargeScreen>
         }
 
         if (errorMessage.isEmpty) {
-          errorMessage = result['raw']?.toString() ?? 'خطأ عام من السيرفر (كود: $httpStatus)';
+          errorMessage = result['raw']?.toString() ?? 'خطأ من السيرفر (كود: $httpStatus)';
         }
 
         _showErrorDialog(errorMessage, widget.card.productId);
