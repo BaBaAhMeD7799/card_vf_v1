@@ -128,7 +128,7 @@ class VodafoneService {
             "characteristic": [
               {"name": "PaymentMethod", "value": "VFCash"},
               {"name": "USE_EMONEY", "value": "false"},
-              {"name": "MerchantCode", "value": "81841829"} // كود التاجر الإجباري المعتمد
+              {"name": "MerchantCode", "value": "81841829"}
             ],
             "id": productId,
             "relatedParty": [
