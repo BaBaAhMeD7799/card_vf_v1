@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class VodafoneService {
@@ -13,8 +14,12 @@ class VodafoneService {
             headers: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'},
           )
           .timeout(const Duration(seconds: 4));
-      if (res.statusCode == 200) return jsonDecode(res.body);
-    } catch (_) {}
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('Remote config error: $e');
+    }
     return {};
   }
 
@@ -35,11 +40,14 @@ class VodafoneService {
           'Accept-Encoding': 'gzip',
         },
       ).timeout(const Duration(seconds: 5));
+
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         return data['msisdn'] != null;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Check VF Network error: $e');
+    }
     return false;
   }
 
@@ -59,8 +67,10 @@ class VodafoneService {
         'x-agent-build': '1139',
         'digitalId': '24S0M31T0I9RK',
       },
-    );
-    return jsonDecode(res.body);
+    ).timeout(const Duration(seconds: 8));
+
+    debugPrint('Seamless Status: ${res.statusCode}');
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   static Future<String?> getAccessToken(String seamlessToken) async {
@@ -85,8 +95,14 @@ class VodafoneService {
         'client_secret': 'b86e30a8-ae29-467a-a71f-65c73f2ff5e3',
         'client_id': 'cash-app',
       },
-    );
-    return jsonDecode(res.body)['access_token'];
+    ).timeout(const Duration(seconds: 8));
+
+    debugPrint('AccessToken Status: ${res.statusCode}');
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      return data['access_token'];
+    }
+    return null;
   }
 
   static Future<Map<String, dynamic>> chargeCard({
@@ -96,6 +112,14 @@ class VodafoneService {
     required String senderMsisdn,
     required String accessToken,
   }) async {
+    final cleanSender = senderMsisdn.trim().startsWith('0')
+        ? senderMsisdn.trim()
+        : '0${senderMsisdn.trim()}';
+
+    final cleanReceiver = receiver.trim().startsWith('0')
+        ? receiver.trim()
+        : '0${receiver.trim()}';
+
     final payload = {
       "channel": {"name": "MobileApp"},
       "orderItem": [
@@ -110,8 +134,8 @@ class VodafoneService {
             ],
             "id": productId,
             "relatedParty": [
-              {"id": senderMsisdn, "name": "MSISDN", "role": "Subscriber"},
-              {"id": receiver, "name": "Receiver", "role": "Receiver"}
+              {"id": cleanSender, "name": "MSISDN", "role": "Subscriber"},
+              {"id": cleanReceiver, "name": "Receiver", "role": "Receiver"}
             ]
           },
           "@type": productId,
@@ -119,13 +143,10 @@ class VodafoneService {
         }
       ],
       "relatedParty": [
-        {"id": pin, "name": "pin", "role": "Requestor"}
+        {"id": pin.trim(), "name": "pin", "role": "Requestor"}
       ],
       "@type": "CashFakkaAndMared"
     };
-
-    final msisdn =
-        senderMsisdn.startsWith('0') ? senderMsisdn : '0$senderMsisdn';
 
     final res = await http.post(
       Uri.parse('https://mobile.vodafone.com.eg/services/dxl/pom/productOrder'),
@@ -138,7 +159,7 @@ class VodafoneService {
         'api-host': 'ProductOrderingManagement',
         'useCase': 'CashFakkaAndMared',
         'api-version': 'v2',
-        'msisdn': msisdn,
+        'msisdn': cleanSender,
         'Authorization': 'Bearer $accessToken',
         'Accept-Language': 'ar',
         'x-agent-operatingsystem': '13',
@@ -149,7 +170,21 @@ class VodafoneService {
         'digitalId': '24S0M31T0I9RK',
       },
       body: jsonEncode(payload),
-    );
-    return jsonDecode(res.body);
+    ).timeout(const Duration(seconds: 14));
+
+    debugPrint('Charge Status Code: ${res.statusCode}');
+    debugPrint('Charge Response: ${res.body}');
+
+    try {
+      final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+      decoded['httpStatusCode'] = res.statusCode;
+      return decoded;
+    } catch (_) {
+      return {
+        'httpStatusCode': res.statusCode,
+        'error': 'Invalid Response Body',
+        'raw': res.body
+      };
+    }
   }
 }
