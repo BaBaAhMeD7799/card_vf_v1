@@ -69,7 +69,6 @@ class VodafoneService {
       },
     ).timeout(const Duration(seconds: 8));
 
-    debugPrint('Seamless Status: ${res.statusCode}');
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
@@ -97,7 +96,6 @@ class VodafoneService {
       },
     ).timeout(const Duration(seconds: 8));
 
-    debugPrint('AccessToken Status: ${res.statusCode}');
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
       return data['access_token'];
@@ -170,21 +168,17 @@ class VodafoneService {
         'digitalId': '24S0M31T0I9RK',
       },
       body: jsonEncode(payload),
-    ).timeout(const Duration(seconds: 14));
-
-    debugPrint('Charge Status Code: ${res.statusCode}');
-    debugPrint('Charge Response: ${res.body}');
+    ).timeout(const Duration(seconds: 15));
 
     try {
-      final decoded = jsonDecode(res.body) as Map<String, dynamic>;
-      decoded['httpStatusCode'] = res.statusCode;
-      return decoded;
+      final decoded = jsonDecode(res.body);
+      if (decoded is Map<String, dynamic>) {
+        decoded['httpStatusCode'] = res.statusCode;
+        return decoded;
+      }
+      return {'httpStatusCode': res.statusCode, 'data': decoded};
     } catch (_) {
-      return {
-        'httpStatusCode': res.statusCode,
-        'error': 'Invalid Response Body',
-        'raw': res.body
-      };
+      return {'httpStatusCode': res.statusCode, 'raw': res.body};
     }
   }
 }
