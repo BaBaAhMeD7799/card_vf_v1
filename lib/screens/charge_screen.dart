@@ -40,12 +40,12 @@ class _ChargeScreenState extends State<ChargeScreen>
   }
 
   @override
-  void dispose() { 
-    _confettiCtrl.dispose(); 
-    _pulseCtrl.dispose(); 
+  void dispose() {
+    _confettiCtrl.dispose();
+    _pulseCtrl.dispose();
     _receiverCtrl.dispose();
     _pinCtrl.dispose();
-    super.dispose(); 
+    super.dispose();
   }
 
   Future<void> _loadLastReceiver() async {
@@ -180,22 +180,19 @@ class _ChargeScreenState extends State<ChargeScreen>
     }
 
     try {
-      // 1. جلب بيانات خط فودافون الحالي
       final seamless = await VodafoneService.getSeamlessData();
       final seamlessToken = seamless['token'] ?? seamless['seamlessToken'];
       final senderMsisdn = (seamless['msisdn'] ?? '').toString();
 
       if (seamlessToken == null || senderMsisdn.isEmpty) {
-        throw Exception('تعذر جلب بيانات خط فودافون، تأكد من اتصالك بداتا الخط');
+        throw Exception('تعذر جلب بيانات خط فودافون، تأكد من تشغيل الداتا على نفس الشريحة');
       }
 
-      // 2. تحويل التوكن إلى Access Token
       final accessToken = await VodafoneService.getAccessToken(seamlessToken);
       if (accessToken == null) {
-        throw Exception('فشل التحقق من الحساب، حاول مرة أخرى');
+        throw Exception('فشل التحقق من حساب المحفظة');
       }
 
-      // 3. إرسال أمر الشحن
       final result = await VodafoneService.chargeCard(
         productId: widget.card.productId,
         receiver: receiver,
@@ -208,48 +205,38 @@ class _ChargeScreenState extends State<ChargeScreen>
       final status = result['status']?.toString().toLowerCase();
       final httpStatus = result['httpStatusCode'];
 
-      // التحقق من قبول العملية بكل الحالات المعتمدة لدى فودافون
       final bool ok = (result['success'] == true) ||
           (status == 'success') ||
           (state == 'completed') ||
           (state == 'acknowledged') ||
           (state == 'inprogress') ||
-          (state == 'in_progress') ||
           ((httpStatus == 200 || httpStatus == 201) &&
               result['orderItem'] != null &&
               state != 'failed' &&
               state != 'rejected');
 
-      String? resultMessage;
+      String errorMessage = '';
       if (!ok) {
-        if (result['reason'] != null) {
-          resultMessage = result['reason'].toString();
+        if (result['message'] != null) {
+          errorMessage = result['message'].toString();
         } else if (result['description'] != null) {
-          resultMessage = result['description'].toString();
-        } else if (result['message'] != null) {
-          resultMessage = result['message'].toString();
+          errorMessage = result['description'].toString();
+        } else if (result['reason'] != null) {
+          errorMessage = result['reason'].toString();
         } else if (result['error'] != null) {
-          resultMessage = result['error'] is Map
-              ? (result['error']['message'] ??
-                      result['error']['description'] ??
-                      result['error']['reason'])
-                  ?.toString()
+          errorMessage = result['error'] is Map
+              ? (result['error']['message'] ?? result['error']['description'] ?? result['error']['reason'] ?? '').toString()
               : result['error'].toString();
-        } else if (result['errors'] is List &&
-            (result['errors'] as List).isNotEmpty) {
-          final err0 = result['errors'][0];
-          resultMessage = err0 is Map
-              ? (err0['message'] ?? err0['description'] ?? err0['reason'])
-                  ?.toString()
-              : err0.toString();
-        } else if (result['fault'] != null &&
-            result['fault']['faultstring'] != null) {
-          resultMessage = result['fault']['faultstring'].toString();
-        } else if (result['raw'] != null) {
-          resultMessage = result['raw'].toString();
-        } else {
-          resultMessage = 'رفض الطلب من السيرفر (كود: ${httpStatus ?? "غير معروف"})';
+        } else if (result['orderItem'] != null && (result['orderItem'] as List).isNotEmpty) {
+          final item = result['orderItem'][0];
+          errorMessage = (item['statusMessage'] ?? item['state'] ?? '').toString();
         }
+
+        if (errorMessage.isEmpty) {
+          errorMessage = result['raw']?.toString() ?? 'كود الاستجابة: $httpStatus';
+        }
+
+        _showErrorDialog(errorMessage, widget.card.productId);
       }
 
       if (ok) {
@@ -268,7 +255,7 @@ class _ChargeScreenState extends State<ChargeScreen>
 
       setState(() {
         _success = ok;
-        _resultMsg = ok ? '✅ تم الشحن بنجاح!' : '❌ $resultMessage';
+        _resultMsg = ok ? '✅ تم الشحن بنجاح!' : '❌ فشل: $errorMessage';
         if (ok) _lastReceiver = receiver;
       });
     } catch (e) {
@@ -279,13 +266,69 @@ class _ChargeScreenState extends State<ChargeScreen>
         phone: receiver,
         success: false,
       );
+      final err = e.toString().replaceAll("Exception: ", "");
+      _showErrorDialog(err, widget.card.productId);
       setState(() {
         _success = false;
-        _resultMsg = '❌ ${e.toString().replaceAll("Exception: ", "")}';
+        _resultMsg = '❌ $err';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showErrorDialog(String serverMsg, String productId) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.red.withOpacity(0.4)),
+          ),
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.red, size: 28),
+                  const SizedBox(width: 10),
+                  Text('رد سيرفر فودافون', style: GoogleFonts.cairo(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text('الكارت المطلوب: $productId', style: GoogleFonts.cairo(color: AppTheme.gold, fontSize: 12)),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgDark,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: SelectableText(
+                  serverMsg,
+                  style: GoogleFonts.cairo(color: Colors.red.shade300, fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.redVF),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('إغلاق', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showNetworkDialog() {
@@ -366,7 +409,6 @@ class _ChargeScreenState extends State<ChargeScreen>
                 _CardDetails(card: widget.card).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1),
                 const SizedBox(height: 24),
 
-                // حقل الرقم
                 Container(
                   decoration: AppTheme.surfaceCard(),
                   padding: const EdgeInsets.all(20),
@@ -418,7 +460,6 @@ class _ChargeScreenState extends State<ChargeScreen>
 
                 const SizedBox(height: 12),
 
-                // حقل الـ PIN
                 Container(
                   decoration: AppTheme.surfaceCard(),
                   padding: const EdgeInsets.all(20),
