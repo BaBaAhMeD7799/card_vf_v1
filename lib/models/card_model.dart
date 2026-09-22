@@ -16,85 +16,94 @@ class CardModel {
   });
 
   static List<CardModel> getAll() => [
+    // 1. كارت الفكة الأساسي الشغال (مسجل بالسيرفر كـ 2.5)
     CardModel(
       id: '1',
-      name: 'فكة 3',
+      name: 'فكة (وحدات)',
       netCharge: '3.00',
       units: '45 وحدة',
       duration: 'حتى منتصف الليل',
-      productId: 'Fakka_3_Unite',
+      productId: 'Fakka_2.5_Unite', // الكود الذي كان يعمل معك سابقاً
     ),
+
+    // 2. كارت فكة دقائق
     CardModel(
       id: '2',
-      name: 'فكة 6',
-      netCharge: '6.00',
-      units: '225 وحدة',
+      name: 'فكة (دقائق)',
+      netCharge: '3.00',
+      units: '45 دقيقة',
       duration: 'حتى منتصف الليل',
-      productId: 'Fakka_6_Unite',
+      productId: 'Fakka_2.5_Minute',
     ),
+
+    // 3. فكة 5 دقائق
     CardModel(
       id: '3',
-      name: 'فكة 8.5',
-      netCharge: '8.50',
-      units: '300 وحدة',
-      duration: '3 أيام',
-      productId: 'Fakka_8.5_Unite',
+      name: 'فكة 6 (دقائق)',
+      netCharge: '6.00',
+      units: '225 دقيقة',
+      duration: 'حتى منتصف الليل',
+      productId: 'Fakka_5_Minute',
     ),
+
+    // 4. مارد 7 دقائق
     CardModel(
       id: '4',
-      name: 'فكة 10.5',
-      netCharge: '10.50',
-      units: '400 وحدة',
-      duration: '4 أيام',
-      productId: 'Fakka_10.5_Unite',
+      name: 'مارد 7 (دقائق)',
+      netCharge: '7.00',
+      units: '300 دقيقة',
+      duration: '3 أيام',
+      productId: 'Mared_7_Minute',
     ),
+
+    // 5. مارد 7 فليكسات
     CardModel(
       id: '5',
-      name: 'فكة 11.5',
-      netCharge: '11.50',
-      units: '450 وحدة',
-      duration: '7 أيام',
-      productId: 'Fakka_11.5_Unite',
+      name: 'مارد 7 (فليكس)',
+      netCharge: '7.00',
+      units: '300 فليكس',
+      duration: '3 أيام',
+      productId: 'Mared_7_Flex',
     ),
+
+    // 6. مارد 10 دقائق
     CardModel(
       id: '6',
-      name: 'فكة 15.5',
-      netCharge: '15.50',
-      units: '550 وحدة',
+      name: 'مارد 10 (دقائق)',
+      netCharge: '10.00',
+      units: '450 دقيقة',
       duration: '7 أيام',
-      productId: 'Fakka_15.5_Unite',
+      productId: 'Mared_10_Minute',
     ),
+
+    // 7. مارد 10 فليكسات
     CardModel(
       id: '7',
-      name: 'فكة 17.5',
-      netCharge: '17.50',
-      units: '650 وحدة',
-      duration: '10 أيام',
-      productId: 'Fakka_17.5_Unite',
+      name: 'مارد 10 (فليكس)',
+      netCharge: '10.00',
+      units: '450 فليكس',
+      duration: '7 أيام',
+      productId: 'Mared_10_Flex',
     ),
+
+    // 8. كارت 15 الذي يعطي 550 دقيقة (حل المشكلة الأولى)
     CardModel(
       id: '8',
-      name: 'فكة 21.5',
-      netCharge: '21.50',
-      units: '750 وحدة',
-      duration: '10 أيام',
-      productId: 'Fakka_21.5_Unite',
+      name: 'فكة 15 (550 دقيقة)',
+      netCharge: '15.00',
+      units: '550 دقيقة',
+      duration: '7 أيام',
+      productId: 'Fakka_15_Minute', // هذا المعرف يعطي الـ 550 دقيقة
     ),
+
+    // 9. كارت 15 الذي يعطي 300 وحدة لكل الشبكات
     CardModel(
       id: '9',
-      name: 'فكة 29',
-      netCharge: '29.00',
-      units: '1100 وحدة',
-      duration: '14 يوم',
-      productId: 'Fakka_29_Unite',
-    ),
-    CardModel(
-      id: '10',
-      name: 'فكة 35',
-      netCharge: '35.00',
-      units: '1300 وحدة',
-      duration: '14 يوم',
-      productId: 'Fakka_35_Unite',
+      name: 'فكة 15 (300 وحدة)',
+      netCharge: '15.00',
+      units: '300 وحدة',
+      duration: '7 أيام',
+      productId: 'Fakka_15_Unite', // الكود الشغال الذي كان يمنح 300 وحدة
     ),
   ];
 }
