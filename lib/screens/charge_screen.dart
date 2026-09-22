@@ -40,11 +40,17 @@ class _ChargeScreenState extends State<ChargeScreen>
   }
 
   @override
-  void dispose() { _confettiCtrl.dispose(); _pulseCtrl.dispose(); super.dispose(); }
+  void dispose() { 
+    _confettiCtrl.dispose(); 
+    _pulseCtrl.dispose(); 
+    _receiverCtrl.dispose();
+    _pinCtrl.dispose();
+    super.dispose(); 
+  }
 
   Future<void> _loadLastReceiver() async {
     final last = await HistoryService.getLastReceiver();
-    setState(() => _lastReceiver = last);
+    if (mounted) setState(() => _lastReceiver = last);
   }
 
   Future<void> _pickContact() async {
@@ -102,7 +108,6 @@ class _ChargeScreenState extends State<ChargeScreen>
                 const SizedBox(height: 16),
                 Text('تأكيد الشحن',
                   style: GoogleFonts.cairo(color: AppTheme.offWhite, fontSize: 18, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 4),
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
@@ -162,8 +167,6 @@ class _ChargeScreenState extends State<ChargeScreen>
     await _charge();
   }
 
-
-
   Future<void> _charge() async {
     final receiver = _receiverCtrl.text.trim();
     final pin = _pinCtrl.text.trim();
@@ -177,22 +180,22 @@ class _ChargeScreenState extends State<ChargeScreen>
     }
 
     try {
-      // 1. جلب بيانات الـ seamless (بيانات خط فودافون الحالي على الجهاز)
+      // 1. جلب بيانات خط فودافون الحالي
       final seamless = await VodafoneService.getSeamlessData();
       final seamlessToken = seamless['token'] ?? seamless['seamlessToken'];
       final senderMsisdn = (seamless['msisdn'] ?? '').toString();
 
       if (seamlessToken == null || senderMsisdn.isEmpty) {
-        throw Exception('تعذر جلب بيانات خط فودافون، تأكد من اتصالك بشبكة فودافون');
+        throw Exception('تعذر جلب بيانات خط فودافون، تأكد من اتصالك بداتا الخط');
       }
 
-      // 2. تحويل الـ seamless token إلى access token
+      // 2. تحويل التوكن إلى Access Token
       final accessToken = await VodafoneService.getAccessToken(seamlessToken);
       if (accessToken == null) {
         throw Exception('فشل التحقق من الحساب، حاول مرة أخرى');
       }
 
-      // 3. تنفيذ عملية الشحن الفعلية على سيرفرات فودافون
+      // 3. إرسال أمر الشحن
       final result = await VodafoneService.chargeCard(
         productId: widget.card.productId,
         receiver: receiver,
@@ -201,10 +204,53 @@ class _ChargeScreenState extends State<ChargeScreen>
         accessToken: accessToken,
       );
 
-      final ok = (result['success'] == true) ||
-          (result['status']?.toString().toLowerCase() == 'success') ||
-          (result['state']?.toString().toLowerCase() == 'completed');
-      final resultMessage = (result['message'] ?? result['error']?['message'])?.toString();
+      final state = result['state']?.toString().toLowerCase();
+      final status = result['status']?.toString().toLowerCase();
+      final httpStatus = result['httpStatusCode'];
+
+      // التحقق من قبول العملية بكل الحالات المعتمدة لدى فودافون
+      final bool ok = (result['success'] == true) ||
+          (status == 'success') ||
+          (state == 'completed') ||
+          (state == 'acknowledged') ||
+          (state == 'inprogress') ||
+          (state == 'in_progress') ||
+          ((httpStatus == 200 || httpStatus == 201) &&
+              result['orderItem'] != null &&
+              state != 'failed' &&
+              state != 'rejected');
+
+      String? resultMessage;
+      if (!ok) {
+        if (result['reason'] != null) {
+          resultMessage = result['reason'].toString();
+        } else if (result['description'] != null) {
+          resultMessage = result['description'].toString();
+        } else if (result['message'] != null) {
+          resultMessage = result['message'].toString();
+        } else if (result['error'] != null) {
+          resultMessage = result['error'] is Map
+              ? (result['error']['message'] ??
+                      result['error']['description'] ??
+                      result['error']['reason'])
+                  ?.toString()
+              : result['error'].toString();
+        } else if (result['errors'] is List &&
+            (result['errors'] as List).isNotEmpty) {
+          final err0 = result['errors'][0];
+          resultMessage = err0 is Map
+              ? (err0['message'] ?? err0['description'] ?? err0['reason'])
+                  ?.toString()
+              : err0.toString();
+        } else if (result['fault'] != null &&
+            result['fault']['faultstring'] != null) {
+          resultMessage = result['fault']['faultstring'].toString();
+        } else if (result['raw'] != null) {
+          resultMessage = result['raw'].toString();
+        } else {
+          resultMessage = 'رفض الطلب من السيرفر (كود: ${httpStatus ?? "غير معروف"})';
+        }
+      }
 
       if (ok) {
         HapticFeedback.heavyImpact();
@@ -213,25 +259,32 @@ class _ChargeScreenState extends State<ChargeScreen>
         HapticFeedback.vibrate();
       }
 
-      final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')} ${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}';
       await HistoryService.addRecord(
-        cardName: widget.card.name, netCharge: widget.card.netCharge,
-        phone: receiver, success: ok);
+        cardName: widget.card.name,
+        netCharge: widget.card.netCharge,
+        phone: receiver,
+        success: ok,
+      );
 
       setState(() {
         _success = ok;
-        _resultMsg = ok ? '✅ تم الشحن بنجاح!' : (resultMessage ?? '❌ فشل الشحن');
+        _resultMsg = ok ? '✅ تم الشحن بنجاح!' : '❌ $resultMessage';
         if (ok) _lastReceiver = receiver;
       });
     } catch (e) {
       HapticFeedback.vibrate();
       await HistoryService.addRecord(
-        cardName: widget.card.name, netCharge: widget.card.netCharge,
-        phone: receiver, success: false);
-      setState(() { _success = false; _resultMsg = '❌ ${e.toString().replaceAll("Exception: ", "")}'; });
+        cardName: widget.card.name,
+        netCharge: widget.card.netCharge,
+        phone: receiver,
+        success: false,
+      );
+      setState(() {
+        _success = false;
+        _resultMsg = '❌ ${e.toString().replaceAll("Exception: ", "")}';
+      });
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -434,15 +487,15 @@ class _ChargeScreenState extends State<ChargeScreen>
                   const SizedBox(height: 20),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: _success == true ? Colors.green.withOpacity(0.08) : Colors.red.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: _success == true ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3))),
                     child: Text(_resultMsg!,
                       style: GoogleFonts.cairo(
-                        color: _success == true ? Colors.green.shade700 : Colors.red.shade700,
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                        color: _success == true ? Colors.green.shade700 : Colors.red.shade400,
+                        fontSize: 14, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center),
                   ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.9, 0.9)),
                 ],
